@@ -4,12 +4,13 @@ library(plotly)
 library(shiny)
 library(bslib)
 library(htmltools)
+source("Parliament_Graph.R")
 
 show_message <- function(){message(Sys.time(), " updating hover_reactive")}
 
 govt <- read_xlsx(path = "data.xlsx", sheet = "GOVERNI")
 debt <- read_xlsx(path = "data.xlsx", sheet = "DATI")
-
+parties <- read_xlsx(path = "data.xlsx", sheet = "PARTITI")
 
 debt <- debt %>%
   pivot_longer(
@@ -18,7 +19,7 @@ debt <- debt %>%
     values_to = "Value",
     values_drop_na = TRUE)
 
-# Define UI for application that draws a histogram
+
 ui <- page_fillable(
 
     # Application title
@@ -60,12 +61,15 @@ ui <- page_fillable(
         
         mainPanel(
            plotlyOutput("year_var"),
+           selectInput("cam",  "Seleziona una camera:",
+                       unique(parties$Camera)),
+           plotlyOutput("parl_plot")
            
         )
     )
 )
 
-# Define server logic required to draw a histogram
+
 server <- function(input, output, session) {
   
   observe({
@@ -84,7 +88,7 @@ server <- function(input, output, session) {
         filter(`UNITA DI MISURA` == input$um) %>%
         filter(ANNO == input$var)
       
-      plot_ly(dat, x = ~Year, y = ~Value, type = "bar") %>%
+      plot_ly(source = "yv", dat, x = ~Year, y = ~Value, type = "bar") %>%
         layout(xaxis = list(title = ''),
                yaxis = list(title = toString(input$um)))
     })
@@ -92,7 +96,7 @@ server <- function(input, output, session) {
     hover_reactive <- reactiveVal() 
     observe({
       show_message()
-      hover_data <- event_data("plotly_hover")
+      hover_data <- event_data("plotly_hover", source = "yv")
       if (!is.null(hover_data)){
         hover_reactive(hover_data) 
         
@@ -113,6 +117,66 @@ server <- function(input, output, session) {
         
         output$coal <-  renderText({
           last_govt$Coalizione})
+        
+        output$parl_plot <- renderPlotly({
+          
+          # parliament plot
+          last_party <- parties %>%
+            filter(Inizio <= hover_data$x) %>% 
+            arrange(Inizio) %>% 
+            filter(Inizio == max(Inizio))%>% 
+            filter(Camera == input$cam)
+          
+          # TRANSFORM last_party
+          last_party <- last_party[rep(row.names(last_party), 
+                                       last_party$Seggi), ]
+          last_party <- parliamentary_Coord(last_party, 
+                                            angle_total = 240, 
+                                            rows = 5, ratio = 6)
+          
+          # Create a color mapping dictionary for the plot
+          d_ict <- last_party %>%
+            select(Partito, Colore) %>%
+            distinct()
+          color_map <- setNames(d_ict$Colore, d_ict$Partito)
+          
+          req(input$cam)
+          fig <- plot_ly(
+            last_party,
+            type = 'scatterpolar',
+            mode = 'markers+text',
+            r = ~radio,
+            theta = ~tetha,
+            # text = ~Partito,
+            customdata = ~Nome,
+            marker = list(size = 5, opacity = 0.7),
+            color = ~Partito,
+            colors = color_map,
+            hoverinfo = 'text',
+            hovertemplate = '<b>%{customdata}</b><extra></extra>',
+            textposition = 'middle center'
+          )
+          
+          # Update the layout to match the custom settings and properly center the plot
+          fig %>%
+            layout(
+              polar = list(
+                radialaxis = list(
+                  visible = FALSE
+                ),
+                angularaxis = list(
+                  visible = FALSE,
+                  #range = c(angle_start, angle_end), 
+                  direction = 'counterclockwise'
+                )
+              ),
+              showlegend = FALSE,
+              height = 500,
+              margin = list(b = 20, r = 5, l = 5, t = 10),
+              font = list(family = "Arial, monospace", size = 12),
+              uniformtext = list(minsize = 8, mode = "hide")
+            )
+        })
     }
     
     
