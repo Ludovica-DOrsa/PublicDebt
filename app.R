@@ -21,6 +21,7 @@ debt <- debt %>%
 
 
 ui <- page_fillable(
+    includeCSS("www/style.css"),
 
     # Application title
     titlePanel("Esplorazione del debito pubblico italiano"),
@@ -45,25 +46,19 @@ ui <- page_fillable(
                           "Tasso crescita nominale (g)",
                           "Deflatore",
                           "Interessi impliciti (i)",
-                          "i-g",
                           "Debito in valuta domestica",
                           "Debito in valuta estera",
-                          "Deficit (-)/Surplus(+) operativo")),
+                          "Deficit (-)/Surplus(+) operativo",
+                          "Debito pro capite"),
+                        selected = "Debito"),
             selectInput("um",  "Seleziona un\'unità di misura:",
                         unique(debt$`UNITA DI MISURA`)),
-            card(height = 350, full_screen = TRUE, 
-                 card_header("Governo in carica:"),
-                 card_body(layout_column_wrap(width = 1/2, 
-                                              card_body(uiOutput("govt"),
-                                                        textOutput("dates"),
-                                                        textOutput("coal")),
-                                              card_body(imageOutput("pic")))))),
+            uiOutput("cardUI"),
+            ),
         
         mainPanel(
            plotlyOutput("year_var"),
-           selectInput("cam",  "Seleziona una camera:",
-                       unique(parties$Camera)),
-           plotlyOutput("parl_plot")
+           uiOutput("seggiUI")
            
         )
     )
@@ -89,7 +84,10 @@ server <- function(input, output, session) {
         filter(ANNO == input$var)
       
       plot_ly(source = "yv", dat, x = ~Year, y = ~Value, type = "bar") %>%
-        layout(xaxis = list(title = ''),
+        layout(title = list(text = input$var, 
+                            xanchor = 'left', yanchor =  'top'), 
+               xaxis = list(title = ''),
+               font = list(family = "Oswald", size = 16),
                yaxis = list(title = toString(input$um)))
     })
     
@@ -105,18 +103,32 @@ server <- function(input, output, session) {
           arrange(Inizio) %>%
           slice(n())
         
-        output$govt <- renderUI({
-          tagList(a(toString(last_govt$Governo), 
-                                 href = last_govt$Link))})
-        output$pic <- renderImage({
-          list(src = paste0(gsub(" ", "", toString(last_govt$Nome)), 
-                                     ".png"), width = 100)}, deleteFile = FALSE)
+        output$cardUI <- renderUI({
+          div(card(
+            full_screen = TRUE,
+            card_header("Governo in carica: "),
+            card_body(
+              layout_column_wrap(
+                width = 1/2, 
+                card_body(
+                  a(toString(last_govt$Governo), href = last_govt$Link),
+                  paste0(last_govt$Inizio, " - ", last_govt$Fine),
+                  last_govt$Coalizione),
+                card_body(renderImage({
+                  list(src = paste0(gsub(" ", "", toString(last_govt$Nome)),
+                                    ".png"), width = 100)}, deleteFile = FALSE))
+                   )))
+          )
+        })
         
-        output$dates <-  renderText({
-          paste0(last_govt$Inizio, " - ", last_govt$Fine)})
+        output$seggiUI <- renderUI({
+          div(
+            selectInput("cam",  "Seleziona una camera:",
+                        unique(parties$Camera)),
+            plotlyOutput("parl_plot")
+          )
+        })
         
-        output$coal <-  renderText({
-          last_govt$Coalizione})
         
         output$parl_plot <- renderPlotly({
           
@@ -170,7 +182,7 @@ server <- function(input, output, session) {
               showlegend = FALSE,
               height = 500,
               margin = list(b = 20, r = 5, l = 5, t = 10),
-              font = list(family = "Arial, monospace", size = 12),
+              font = list(family = "Oswald", size = 12),
               uniformtext = list(minsize = 8, mode = "hide"),
               images = list(list(source =  base64enc::dataURI(file=pic_source), 
                                  xref = "paper", yref = "paper",
