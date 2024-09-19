@@ -132,7 +132,7 @@ server <- function(input, output, session) {
                                        last_party$Seggi), ]
           last_party <- parliamentary_Coord(last_party, 
                                             angle_total = 240, 
-                                            rows = 5, ratio = 6)
+                                            rows = 7, ratio = 6)
           
           # Create a color mapping dictionary for the plot
           d_ict <- last_party %>%
@@ -156,25 +156,30 @@ server <- function(input, output, session) {
             hovertemplate = '<b>%{customdata}</b><extra></extra>',
             textposition = 'middle center'
           )
+          if (input$cam == "Camera dei deputati"){
+            pic_source <- "Camera.png"
+          } else {
+            pic_source <- "Senato.png"
+          }
           
           # Update the layout to match the custom settings and properly center the plot
           fig %>%
-            layout(
-              polar = list(
-                radialaxis = list(
-                  visible = FALSE
-                ),
-                angularaxis = list(
-                  visible = FALSE,
-                  #range = c(angle_start, angle_end), 
-                  direction = 'counterclockwise'
-                )
-              ),
+            layout(polar = list(radialaxis = list(visible = FALSE),
+                angularaxis = list(visible = FALSE, 
+                                   direction = 'counterclockwise')),
               showlegend = FALSE,
               height = 500,
               margin = list(b = 20, r = 5, l = 5, t = 10),
               font = list(family = "Arial, monospace", size = 12),
-              uniformtext = list(minsize = 8, mode = "hide")
+              uniformtext = list(minsize = 8, mode = "hide"),
+              images = list(list(source =  base64enc::dataURI(file=pic_source), 
+                                 xref = "paper", yref = "paper",
+                                 x = 0.5, y = 0.5,
+                                 sizex = 0.2, sizey = 0.2, 
+                                 xanchor = "center", yanchor = "middle",
+                                 layer = "above"
+                  )
+                )
             )
         })
     }
