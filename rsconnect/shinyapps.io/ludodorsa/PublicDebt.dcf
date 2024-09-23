@@ -5,9 +5,8 @@ account: ludodorsa
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12796114
-bundleId: 9135494
+bundleId: 9135574
 url: https://ludodorsa.shinyapps.io/PublicDebt/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: Chloropleth.R|Parliament_Graph.R|Scrape_Tables.R
