@@ -3,6 +3,7 @@ library(tidyverse)
 library(rjson)
 
 govt <- read_xlsx(path = "data.xlsx", sheet = "GOVERNI")
+occ <- read_xlsx(path = "occupation.xlsx", sheet = "Totale")
 debt <- read_xlsx(path = "data.xlsx", sheet = "DATI")
 parties <- read_xlsx(path = "data.xlsx", sheet = "PARTITI")
 pop <-  read_xlsx(path = "demo.xlsx", sheet = "Popolazione per Regione")

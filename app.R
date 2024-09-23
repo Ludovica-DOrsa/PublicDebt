@@ -15,6 +15,10 @@ show_message <- function(){message(Sys.time(), " updating hover_reactive")}
 
 ui <- page_fluid(
     includeCSS("www/style.css"),
+    tags$head(
+      tags$link(rel = "stylesheet", 
+                href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css")
+    ),
 
     # Application title
     layout_columns(
@@ -39,6 +43,7 @@ ui <- page_fluid(
       }
     });
   ")),
+    
     col_widths = c(10, 2), 
     style='padding:20px;'
     ),
@@ -47,6 +52,8 @@ ui <- page_fluid(
       navpanel1, 
       navpanel2,
       navpanel3,
+      navpanel4,
+      navpanel5,
       id = "tab")
 )
 
@@ -73,19 +80,36 @@ server <- function(input, output, session) {
       output$var3Id <- output$var1Id  <- renderText({"Seleziona una statistica:"})
       output$umId  <- renderText({"Seleziona un\'unità di misura:"})
       output$daterange2Id  <- renderText({"Scegli un anno:"})
-      output$daterange3Id <- output$range1Id <- renderText({"Scegli un range di anni:"})
+      output$daterange4 <- output$daterange3Id <- output$range1Id <- 
+        renderText({"Scegli un range di anni:"})
       output$viz1Id  <- renderText({"Seleziona una visualizzazione:"})
       output$reg2Id  <- renderText({"Seleziona una regione:"})
       output$reg1Id  <- renderText({"Seleziona una regione:"})
+      output$navpanel4Id <- renderText({"Lavoro"})
+      output$bucket_ui <- renderUI({fluidRow(
+        column(
+          width = 12, bucket_list(header=NULL,
+            group_name = "bucket_list_group", orientation = "horizontal",
+            add_rank_list(
+              text = "Variabili disponibili", 
+              labels = unique(occ$Variabile),
+              input_id = "rank_list_1"),
+            add_rank_list(text = "Variabili selezionate", labels = NULL, 
+                          input_id = "rank_list_2")
+          )
+        )
+      )})
     } else {
       output$titleId <- renderText({"Italian macroeconomics explorer"})
       output$navpanel1Id <- renderText({"Public debt"})
       output$navpanel2Id <- renderText({"Population"})
       output$navpanel3Id <- renderText({"Demographic balance"})
+      output$navpanel4Id  <- renderText({"Employment"})
       output$var3Id <- output$var1Id  <- renderText({"Select a statistic:"})
       output$umId  <- renderText({"Select a unit of measurement:"})
       output$daterange2Id  <- renderText({"Pick a year:"})
-      output$daterange3Id <- output$range1Id <- renderText({"Pick a year range:"})
+      output$daterange4 <- output$daterange3Id <- output$range1Id <- 
+        renderText({"Pick a year range:"})
       output$viz1Id  <- renderText({"Select a visualization:"})
       output$reg2Id  <- renderText({"Select a region:"})
       output$reg1Id  <- renderText({"Select a region:"})
@@ -107,6 +131,20 @@ server <- function(input, output, session) {
                                     "Operational Deficit (-)/Surplus(+)" = "Deficit (-)/Surplus(+) operativo",
                                     "Per capita debt" = "Debito pro capite"),
                         selected = "Debito")
+      
+      output$bucket_ui <- renderUI({fluidRow(
+        column(
+          width = 12, bucket_list(header=NULL,
+            group_name = "bucket_list_group", orientation = "horizontal",
+            add_rank_list(
+              text = "Available variables", 
+              labels = unique(occ$Variable),
+              input_id = "rank_list_1"),
+            add_rank_list(text = "Selected variables", labels = NULL, 
+                          input_id = "rank_list_2")
+          )
+        )
+      )})
       
       updateSelectInput(session, "viz",
                         choices = c("Map" = "Mappa", 
@@ -445,9 +483,7 @@ server <- function(input, output, session) {
        })})
        
        # ----------------------------------"Bilancio demografico"-----------
-      
 
-################
 
     observe(
       if(input$var3=="Saldo naturale"){
@@ -545,7 +581,6 @@ server <- function(input, output, session) {
                             Anno <= input$daterange3[2]) %>%
                      pivot_longer(c("Immigrati dall'estero", "Emigrati per l'estero"), names_to = "Totale", 
                                   values_to = "N") 
-                   print(bil_chart)
                    bil_chart <- bil_chart %>%
                      mutate(POP = if_else(Totale == "Immigrati dall'estero", 
                                           N, -N))
@@ -580,6 +615,42 @@ server <- function(input, output, session) {
            })
       }
       )
+    
+    # ----------------------------------"Lavoro"-----------
+    
+    observe(print(input$rank_list_2))
+    observe(
+      if (length(input$rank_list_2) >0){
+        output$year_viz3 <- renderPlotly({
+      if (flagState() == "italy") {
+        occ_plot <- occ %>%
+          filter(Anno >= input$daterange4[1], 
+                 Anno <= input$daterange4[2],
+                 Variabile %in% input$rank_list_2) %>%
+          mutate(Valore = as.numeric(Valore))
+        
+          plot_ly(occ_plot, x = "Anno", y = "Valore", group_by = "Variabile", 
+                  type = 'scatter', mode = 'lines') %>%
+            layout(xaxis = list(rangeslider = list(visible = T), title = ""),
+                   font = list(family = "Oswald", size = 16), 
+                   yaxis = list(title = "%"))
+      } else {
+        occ_plot <- occ %>%
+          filter(Anno >= input$daterange4[1], 
+                 Anno <= input$daterange4[2],
+                 Variable %in% input$rank_list_2) %>%
+          mutate(Valore = as.numeric(Valore))
+        
+          plot_ly(occ_plot, x = ~Anno, y = ~Valore, color = ~Variable, 
+                  type = 'scatter', mode = 'lines') %>%
+            layout(xaxis = list(rangeslider = list(visible = T), title = ""),
+                   font = list(family = "Oswald", size = 16), 
+                   yaxis = list(title = "%"))
+        
+      }
+        }
+    )}
+    )
  
 }
 

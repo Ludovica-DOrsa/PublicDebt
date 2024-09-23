@@ -6,3 +6,10 @@ body {
 }
 
 * {font-family: 'Oswald', sans-serif;}
+
+.rank-list-container {
+        background-color: white !important;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 5px;
+      }
